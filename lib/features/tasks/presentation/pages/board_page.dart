@@ -264,6 +264,8 @@ class KanbanCard extends StatelessWidget {
   }
 
   void _showDeleteConfirmation(BuildContext context) {
+    final tasksBloc = context.read<TasksBloc>(); // Capture bloc BEFORE dialog
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -276,7 +278,7 @@ class KanbanCard extends StatelessWidget {
           ),
           TextButton(
             onPressed: () {
-              context.read<TasksBloc>().add(DeleteTask(task.id, projectId));
+              tasksBloc.add(DeleteTask(task.id, projectId)); // Use captured bloc
               Navigator.pop(context);
             },
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
