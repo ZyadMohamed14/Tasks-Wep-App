@@ -26,7 +26,7 @@ echo "Fetching packages..."
 flutter pub get
 
 echo "Building web app..."
-flutter build web --release
+flutter build web --release --base-href "/"
 
 # Create 404.html for fallback routing
 cp build/web/index.html build/web/404.html
