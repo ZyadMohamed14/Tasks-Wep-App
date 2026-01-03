@@ -1,8 +1,11 @@
 {
-  "version": 2,
-  "public": true,
-  "framework": "flutter",
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+  "routes": [
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/.*",
+      "dest": "/index.html"
+    }
   ]
 }
