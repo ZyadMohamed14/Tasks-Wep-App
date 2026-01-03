@@ -1,10 +1,14 @@
 {
+  "framework": null,
+  "buildCommand": "bash build.sh",
+  "outputDirectory": "build/web",
+  "installCommand": "echo 'Skip install'",
   "routes": [
     {
       "handle": "filesystem"
     },
     {
-      "src": "/[^.]*",
+      "src": "/(.*)",
       "dest": "/index.html"
     }
   ]
