@@ -50,24 +50,37 @@ final router = GoRouter(
   ],
 );
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
 
   @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  @override
+  void initState() {
+    super.initState();
+    // Check auth status on app start
+    context.read<AuthBloc>().add(CheckAuthStatus());
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocBuilder<AuthBloc, AuthState>(
-      builder: (context, state) {
+    return BlocConsumer<AuthBloc, AuthState>(
+      listener: (context, state) {
         if (state is AuthAuthenticated) {
-          return BlocProvider(
-            create: (context) => sl<ProjectsBloc>(),
-            child: const ProjectsPage(),
-          );
-        } else if (state is AuthUnauthenticated || state is AuthInitial) {
-          return const LoginPage();
+          context.go('/projects');
+        } else if (state is AuthUnauthenticated) {
+          context.go('/login');
         }
-        
+      },
+      builder: (context, state) {
+        // Show splash/loading screen while checking
         return const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
+          body: Center(
+            child: CircularProgressIndicator(),
+          ),
         );
       },
     );

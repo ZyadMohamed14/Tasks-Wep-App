@@ -10,12 +10,28 @@ class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl(this._supabase);
 
   @override
-  Future<void> signInWithGoogle() async {
-    await _supabase.auth.signInWithOAuth(
+  Future<UserEntity> signInWithGoogle() async {
+    final response = await _supabase.auth.signInWithOAuth(
       OAuthProvider.google,
-      redirectTo: kIsWeb ? Uri.base.origin : null,
+      redirectTo: '${Uri.base.origin}/auth/callback',
+    );
+
+    // Wait for session
+    await _supabase.auth.onAuthStateChange.firstWhere(
+          (data) => data.session != null,
+    );
+
+    final user = _supabase.auth.currentUser;
+    if (user == null) throw Exception('Sign in failed');
+
+    return UserEntity(
+      id: user.id,
+      email: user.email!,
+      fullName: user.userMetadata?['full_name'],
+      avatarUrl: user.userMetadata?['avatar_url'],
     );
   }
+
 
   @override
   Future<void> signOut() async {
@@ -37,13 +53,22 @@ class AuthRepositoryImpl implements AuthRepository {
   }
   @override
   Future<UserEntity?> getCurrentUser() async {
-    final user = _supabase.auth.currentUser;
-    if (user == null) return null;
-    return UserModel(
-      id: user.id,
-      email: user.email ?? '',
-      fullName: user.userMetadata?['full_name'],
-      avatarUrl: user.userMetadata?['avatar_url'],
-    );
+    try {
+      final session = _supabase.auth.currentSession;
+      if (session != null) {
+        final user = _supabase.auth.currentUser;
+        if (user != null) {
+          return UserEntity(
+            id: user.id,
+            email: user.email!,
+            fullName: user.userMetadata?['full_name'],
+            avatarUrl: user.userMetadata?['avatar_url'],
+          );
+        }
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
   }
 }

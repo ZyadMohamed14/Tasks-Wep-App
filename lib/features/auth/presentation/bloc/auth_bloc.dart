@@ -18,7 +18,7 @@ class AuthUserChanged extends AuthEvent {
   @override
   List<Object?> get props => [user];
 }
-
+class CheckAuthStatus extends AuthEvent {}
 // States
 abstract class AuthState extends Equatable {
   @override
@@ -47,6 +47,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   AuthBloc(this._authRepository) : super(AuthInitial()) {
     on<AuthSignInRequested>(_onSignInRequested);
+    on<CheckAuthStatus>(_onCheckAuthStatus);
     on<AuthSignOutRequested>(_onSignOutRequested);
     on<AuthUserChanged>(_onUserChanged);
 
@@ -59,7 +60,22 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     // Check for existing session
     add(AuthCheckRequested());
   }
-
+  Future<void> _onCheckAuthStatus(
+      CheckAuthStatus event,
+      Emitter<AuthState> emit,
+      ) async {
+    emit(AuthLoading());
+    try {
+      final user = await _authRepository.getCurrentUser();
+      if (user != null) {
+        emit(AuthAuthenticated(user));
+      } else {
+        emit(AuthUnauthenticated());
+      }
+    } catch (e) {
+      emit(AuthUnauthenticated());
+    }
+  }
   Future<void> _onCheckRequested(AuthCheckRequested event, Emitter<AuthState> emit) async {
     final user = await _authRepository.getCurrentUser();
     if (user != null) {
@@ -72,7 +88,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   Future<void> _onSignInRequested(AuthSignInRequested event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
     try {
-      await _authRepository.signInWithGoogle();
+      final user = await _authRepository.signInWithGoogle();
+      emit(AuthAuthenticated(user));
     } catch (e) {
       emit(AuthError(e.toString()));
     }
