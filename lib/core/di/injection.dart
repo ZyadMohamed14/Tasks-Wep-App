@@ -27,5 +27,5 @@ Future<void> init() async {
 
   // Features - Tasks
   sl.registerLazySingleton<TasksRepository>(() => TasksRepositoryImpl(sl()));
-  sl.registerFactory(() => TasksBloc(sl()));
+  sl.registerFactory(() => TasksBloc(sl<TasksRepository>(), sl<ProjectsRepository>()));
 }

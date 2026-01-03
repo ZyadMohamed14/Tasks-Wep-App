@@ -2,6 +2,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/task_entity.dart';
 import '../../domain/repositories/tasks_repository.dart';
+import '../../../projects/domain/entities/project_member_entity.dart';
+import '../../../projects/domain/repositories/projects_repository.dart';
 
 // Events
 abstract class TasksEvent extends Equatable {
@@ -37,10 +39,11 @@ class MoveTask extends TasksEvent {
 
 class AssignTask extends TasksEvent {
   final String taskId;
+  final String projectId;
   final String? userId;
-  AssignTask(this.taskId, this.userId);
+  AssignTask(this.taskId, this.projectId, this.userId);
   @override
-  List<Object?> get props => [taskId, userId];
+  List<Object?> get props => [taskId, projectId, userId];
 }
 
 // States
@@ -53,9 +56,21 @@ class TasksInitial extends TasksState {}
 class TasksLoading extends TasksState {}
 class TasksLoaded extends TasksState {
   final List<TaskEntity> tasks;
-  TasksLoaded(this.tasks);
+  final List<ProjectMemberEntity> members;
+  final String? currentUserRole;
+  final String projectId;
+
+  TasksLoaded({
+    required this.tasks,
+    required this.members,
+    required this.currentUserRole,
+    required this.projectId,
+  });
+
+  bool get isCurrentUserAdmin => currentUserRole == 'admin';
+
   @override
-  List<Object?> get props => [tasks];
+  List<Object?> get props => [tasks, members, currentUserRole, projectId];
 }
 class TasksError extends TasksState {
   final String message;
@@ -66,9 +81,10 @@ class TasksError extends TasksState {
 
 // Bloc
 class TasksBloc extends Bloc<TasksEvent, TasksState> {
-  final TasksRepository _repository;
+  final TasksRepository _tasksRepository;
+  final ProjectsRepository _projectsRepository;
 
-  TasksBloc(this._repository) : super(TasksInitial()) {
+  TasksBloc(this._tasksRepository, this._projectsRepository) : super(TasksInitial()) {
     on<LoadTasks>(_onLoadTasks);
     on<AddTask>(_onAddTask);
     on<MoveTask>(_onMoveTask);
@@ -78,8 +94,18 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
   Future<void> _onLoadTasks(LoadTasks event, Emitter<TasksState> emit) async {
     emit(TasksLoading());
     try {
-      final tasks = await _repository.getTasks(event.projectId);
-      emit(TasksLoaded(tasks));
+      final results = await Future.wait([
+        _tasksRepository.getTasks(event.projectId),
+        _projectsRepository.getProjectMembers(event.projectId),
+        _projectsRepository.getCurrentUserRole(event.projectId),
+      ]);
+      
+      emit(TasksLoaded(
+        tasks: results[0] as List<TaskEntity>,
+        members: results[1] as List<ProjectMemberEntity>,
+        currentUserRole: results[2] as String?,
+        projectId: event.projectId,
+      ));
     } catch (e) {
       emit(TasksError(e.toString()));
     }
@@ -87,7 +113,7 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
 
   Future<void> _onAddTask(AddTask event, Emitter<TasksState> emit) async {
     try {
-      await _repository.createTask(event.projectId, event.title, event.description, event.status);
+      await _tasksRepository.createTask(event.projectId, event.title, event.description, event.status);
       add(LoadTasks(event.projectId));
     } catch (e) {
       emit(TasksError(e.toString()));
@@ -97,30 +123,34 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
   Future<void> _onMoveTask(MoveTask event, Emitter<TasksState> emit) async {
     // Optimistic update
     if (state is TasksLoaded) {
-      final currentTasks = (state as TasksLoaded).tasks;
-      final updatedTasks = currentTasks.map((t) {
+      final currentState = state as TasksLoaded;
+      final updatedTasks = currentState.tasks.map((t) {
         if (t.id == event.task.id) {
           return t.copyWith(status: event.newStatus, position: event.newPosition);
         }
         return t;
       }).toList();
-      emit(TasksLoaded(updatedTasks));
+      emit(TasksLoaded(
+        tasks: updatedTasks,
+        members: currentState.members,
+        currentUserRole: currentState.currentUserRole,
+        projectId: currentState.projectId,
+      ));
     }
 
     try {
-      await _repository.updateTaskStatus(event.task.id, event.newStatus);
-      await _repository.updateTaskPosition(event.task.id, event.newPosition);
+      await _tasksRepository.updateTaskStatus(event.task.id, event.newStatus);
+      await _tasksRepository.updateTaskPosition(event.task.id, event.newPosition);
     } catch (e) {
-      // Revert on error? For now just log
+      // Revert on error
       add(LoadTasks(event.task.projectId));
     }
   }
 
   Future<void> _onAssignTask(AssignTask event, Emitter<TasksState> emit) async {
     try {
-      await _repository.assignTask(event.taskId, event.userId);
-      // We need project ID to reload, or just update locally
-      // For simplicity, let's assume we logicly find it or just refresh the board
+      await _tasksRepository.assignTask(event.taskId, event.userId);
+      add(LoadTasks(event.projectId));
     } catch (e) {
       emit(TasksError(e.toString()));
     }

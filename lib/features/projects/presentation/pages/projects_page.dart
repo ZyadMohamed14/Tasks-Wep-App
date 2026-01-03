@@ -32,7 +32,14 @@ class _ProjectsPageState extends State<ProjectsPage> {
           ),
         ],
       ),
-      body: BlocBuilder<ProjectsBloc, ProjectsState>(
+      body: BlocConsumer<ProjectsBloc, ProjectsState>(
+        listener: (context, state) {
+          if (state is ProjectsError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message)),
+            );
+          }
+        },
         builder: (context, state) {
           if (state is ProjectsLoading) {
             return const Center(child: CircularProgressIndicator());
@@ -92,10 +99,11 @@ class _ProjectsPageState extends State<ProjectsPage> {
   void _showCreateProjectDialog(BuildContext context) {
     final nameController = TextEditingController();
     final descController = TextEditingController();
+    final projectsBloc = context.read<ProjectsBloc>();
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Create Project'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -112,16 +120,16 @@ class _ProjectsPageState extends State<ProjectsPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
               if (nameController.text.isNotEmpty) {
-                this.context.read<ProjectsBloc>().add(
-                      CreateProject(nameController.text, descController.text),
-                    );
-                Navigator.pop(context);
+                projectsBloc.add(
+                  CreateProject(nameController.text, descController.text),
+                );
+                Navigator.pop(dialogContext);
               }
             },
             child: const Text('Create'),

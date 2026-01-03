@@ -13,7 +13,7 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> signInWithGoogle() async {
     await _supabase.auth.signInWithOAuth(
       OAuthProvider.google,
-      redirectTo: kIsWeb ? null : 'io.supabase.taskswebsite://login-callback/',
+      redirectTo: kIsWeb ? Uri.base.origin : null,
     );
   }
 

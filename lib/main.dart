@@ -15,8 +15,8 @@ void main() async {
 
   // Initialize Supabase
   await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL']!,
-    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+    url: 'https://ouleotfubqhvivsgzsbj.supabase.co',
+    anonKey: 'sb_publishable_KQBe-gUu1Up1NYBnf9tmKw_1HWk98rt',
   );
 
   // Initialize Dependency Injection
