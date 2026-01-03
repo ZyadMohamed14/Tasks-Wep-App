@@ -35,4 +35,15 @@ class AuthRepositoryImpl implements AuthRepository {
       );
     });
   }
+  @override
+  Future<UserEntity?> getCurrentUser() async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return null;
+    return UserModel(
+      id: user.id,
+      email: user.email ?? '',
+      fullName: user.userMetadata?['full_name'],
+      avatarUrl: user.userMetadata?['avatar_url'],
+    );
+  }
 }

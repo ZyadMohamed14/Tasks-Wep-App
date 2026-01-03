@@ -6,5 +6,6 @@ abstract class TasksRepository {
   Future<void> updateTaskStatus(String taskId, String status);
   Future<void> updateTaskPosition(String taskId, double position);
   Future<void> assignTask(String taskId, String? userId);
+  Future<void> updateTask(String taskId, String title, String? description);
   Future<void> deleteTask(String taskId);
 }

@@ -263,6 +263,72 @@ class KanbanCard extends StatelessWidget {
     }
   }
 
+  void _showDeleteConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Task'),
+        content: const Text('Are you sure you want to delete this task?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              context.read<TasksBloc>().add(DeleteTask(task.id, projectId));
+              Navigator.pop(context);
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditTaskDialog(BuildContext context) {
+    final titleController = TextEditingController(text: task.title);
+    final descController = TextEditingController(text: task.description);
+    final tasksBloc = context.read<TasksBloc>();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Edit Task'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(labelText: 'Task Title'),
+            ),
+            TextField(
+              controller: descController,
+              decoration: const InputDecoration(labelText: 'Description'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (titleController.text.isNotEmpty) {
+                tasksBloc.add(
+                  EditTask(task.id, projectId, titleController.text, descController.text),
+                );
+                Navigator.pop(dialogContext);
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showAssignDialog(BuildContext context) {
     final tasksBloc = context.read<TasksBloc>();
     
@@ -351,7 +417,10 @@ class KanbanCard extends StatelessWidget {
     );
   }
 
-  Widget _buildCard(BuildContext context, ProjectMemberEntity? assignedMember) {
+  Widget _buildCard(
+      BuildContext context,
+      ProjectMemberEntity? assignedMember,
+      ) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
@@ -363,6 +432,7 @@ class KanbanCard extends StatelessWidget {
               task.title,
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
+
             if (task.description != null && task.description!.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
@@ -375,39 +445,68 @@ class KanbanCard extends StatelessWidget {
                 ),
               ),
             ],
+
             const SizedBox(height: 8),
+
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                IconButton(
+                  icon: const Icon(Icons.edit, size: 18, color: Colors.white70),
+                  onPressed: () => _showEditTaskDialog(context),
+                  tooltip: 'Edit Task',
+                ),
+                const SizedBox(width: 8),
+
+                IconButton(
+                  icon: const Icon(Icons.delete, size: 18, color: Colors.redAccent),
+                  onPressed: () => _showDeleteConfirmation(context),
+                  tooltip: 'Delete Task',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+
+                const SizedBox(width: 12),
+
                 GestureDetector(
                   onTap: () => _showAssignDialog(context),
                   child: assignedMember != null
                       ? CircleAvatar(
-                          radius: 14,
-                          backgroundImage: assignedMember.avatarUrl != null
-                              ? NetworkImage(assignedMember.avatarUrl!)
-                              : null,
-                          backgroundColor: Theme.of(context).primaryColor,
-                          child: assignedMember.avatarUrl == null
-                              ? Text(
-                                  (assignedMember.fullName ?? assignedMember.email ?? 'U')[0].toUpperCase(),
-                                  style: const TextStyle(color: Colors.white, fontSize: 12),
-                                )
-                              : null,
-                        )
+                    radius: 14,
+                    backgroundImage: assignedMember.avatarUrl != null
+                        ? NetworkImage(assignedMember.avatarUrl!)
+                        : null,
+                    backgroundColor:
+                    Theme.of(context).primaryColor,
+                    child: assignedMember.avatarUrl == null
+                        ? Text(
+                      (assignedMember.fullName ??
+                          assignedMember.email ??
+                          'U')[0]
+                          .toUpperCase(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                      ),
+                    )
+                        : null,
+                  )
                       : Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.grey,
-                              width: 1.5,
-                              style: BorderStyle.solid,
-                            ),
-                          ),
-                          child: const Icon(Icons.person_add, size: 16, color: Colors.grey),
-                        ),
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.grey,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.person_add,
+                      size: 16,
+                      color: Colors.grey,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -416,4 +515,5 @@ class KanbanCard extends StatelessWidget {
       ),
     );
   }
+
 }

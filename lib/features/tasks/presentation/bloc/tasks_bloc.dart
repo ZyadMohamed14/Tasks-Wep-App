@@ -44,6 +44,25 @@ class AssignTask extends TasksEvent {
   AssignTask(this.taskId, this.projectId, this.userId);
   @override
   List<Object?> get props => [taskId, projectId, userId];
+
+}
+
+class EditTask extends TasksEvent {
+  final String taskId;
+  final String projectId;
+  final String title;
+  final String? description;
+  EditTask(this.taskId, this.projectId, this.title, this.description);
+  @override
+  List<Object?> get props => [taskId, projectId, title, description];
+}
+
+class DeleteTask extends TasksEvent {
+  final String taskId;
+  final String projectId;
+  DeleteTask(this.taskId, this.projectId);
+  @override
+  List<Object?> get props => [taskId, projectId];
 }
 
 // States
@@ -88,7 +107,10 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
     on<LoadTasks>(_onLoadTasks);
     on<AddTask>(_onAddTask);
     on<MoveTask>(_onMoveTask);
+
     on<AssignTask>(_onAssignTask);
+    on<EditTask>(_onEditTask);
+    on<DeleteTask>(_onDeleteTask);
   }
 
   Future<void> _onLoadTasks(LoadTasks event, Emitter<TasksState> emit) async {
@@ -150,6 +172,24 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
   Future<void> _onAssignTask(AssignTask event, Emitter<TasksState> emit) async {
     try {
       await _tasksRepository.assignTask(event.taskId, event.userId);
+      add(LoadTasks(event.projectId));
+    } catch (e) {
+      emit(TasksError(e.toString()));
+    }
+  }
+
+  Future<void> _onEditTask(EditTask event, Emitter<TasksState> emit) async {
+    try {
+      await _tasksRepository.updateTask(event.taskId, event.title, event.description);
+      add(LoadTasks(event.projectId));
+    } catch (e) {
+      emit(TasksError(e.toString()));
+    }
+  }
+
+  Future<void> _onDeleteTask(DeleteTask event, Emitter<TasksState> emit) async {
+    try {
+      await _tasksRepository.deleteTask(event.taskId);
       add(LoadTasks(event.projectId));
     } catch (e) {
       emit(TasksError(e.toString()));

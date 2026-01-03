@@ -11,6 +11,7 @@ abstract class AuthEvent extends Equatable {
 
 class AuthSignInRequested extends AuthEvent {}
 class AuthSignOutRequested extends AuthEvent {}
+class AuthCheckRequested extends AuthEvent {}
 class AuthUserChanged extends AuthEvent {
   final UserEntity? user;
   AuthUserChanged(this.user);
@@ -49,9 +50,23 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthSignOutRequested>(_onSignOutRequested);
     on<AuthUserChanged>(_onUserChanged);
 
+    on<AuthCheckRequested>(_onCheckRequested);
+
     _authRepository.user.listen((user) {
       add(AuthUserChanged(user));
     });
+
+    // Check for existing session
+    add(AuthCheckRequested());
+  }
+
+  Future<void> _onCheckRequested(AuthCheckRequested event, Emitter<AuthState> emit) async {
+    final user = await _authRepository.getCurrentUser();
+    if (user != null) {
+      emit(AuthAuthenticated(user));
+    } else {
+      emit(AuthUnauthenticated());
+    }
   }
 
   Future<void> _onSignInRequested(AuthSignInRequested event, Emitter<AuthState> emit) async {
