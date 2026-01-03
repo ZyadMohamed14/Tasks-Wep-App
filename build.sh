@@ -28,4 +28,7 @@ flutter pub get
 echo "Building web app..."
 flutter build web --release
 
+# Create 404.html for fallback routing
+cp build/web/index.html build/web/404.html
+
 echo "Build complete!"
